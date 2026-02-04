@@ -13,12 +13,12 @@ Usage:
 
 Examples:
     # Run hardware example (requires Ascend device)
-    python examples/scripts/run_example.py -k examples/host_build_graph_example/kernels \
-                                      -g examples/host_build_graph_example/golden.py
+    python examples/scripts/run_example.py -k examples/host_build_graph/host_build_graph_example/kernels \
+                                      -g examples/host_build_graph/host_build_graph_example/golden.py
 
     # Run simulation example (no hardware required)
-    python examples/scripts/run_example.py -k examples/host_build_graph_sim_example/kernels \
-                                      -g examples/host_build_graph_sim_example/golden.py \
+    python examples/scripts/run_example.py -k examples/host_build_graph/host_build_graph_example/kernels \
+                                      -g examples/host_build_graph/host_build_graph_example/golden.py \
                                       -p a2a3sim
 
     # Run with specific device
@@ -90,8 +90,10 @@ Golden.py interface:
 
     parser.add_argument(
         "-v", "--verbose",
-        action="store_true",
-        help="Enable verbose output"
+        type=int,
+        default=1,
+        choices=[0, 1, 2],
+        help="Verbosity level: 0=silent (errors only), 1=normal (default), 2=verbose (all output)"
     )
 
     args = parser.parse_args()
@@ -134,6 +136,7 @@ Golden.py interface:
             runtime_name=args.runtime,
             device_id=args.device,
             platform=args.platform,
+            verbose=args.verbose,
         )
 
         runner.run()
@@ -149,7 +152,7 @@ Golden.py interface:
 
     except Exception as e:
         print(f"\nTEST FAILED: {e}")
-        if args.verbose:
+        if args.verbose >= 2:
             import traceback
             traceback.print_exc()
         return 1

@@ -54,14 +54,14 @@ No Ascend SDK or CANN toolkit required.
 ```bash
 # From repository root
 python examples/scripts/run_example.py \
-  -k examples/paged_attention/kernels \
-  -g examples/paged_attention/golden.py \
+  -k examples/host_build_graph/paged_attention/kernels \
+  -g examples/host_build_graph/paged_attention/golden.py \
   -p a2a3sim
 
 # With verbose output
 python examples/scripts/run_example.py \
-  -k examples/paged_attention/kernels \
-  -g examples/paged_attention/golden.py \
+  -k examples/host_build_graph/paged_attention/kernels \
+  -g examples/host_build_graph/paged_attention/golden.py \
   -p a2a3sim \
   -v
 ```
@@ -194,6 +194,6 @@ For example, with `num_heads=16` and `kv_head_num=1`, all 16 query heads share t
 
 ## See Also
 
-- [Test Framework Documentation](../scripts/README.md)
-- [Simple Example](../host_build_graph_sim_example/) - Basic task graph example
-- [Main Project README](../../README.md)
+- [Test Framework Documentation](../../scripts/README.md)
+- [Simple Example](../host_build_graph_example/) - Basic task graph example
+- [Main Project README](../../../README.md)

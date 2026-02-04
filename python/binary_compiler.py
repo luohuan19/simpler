@@ -22,17 +22,19 @@ class BinaryCompiler:
     """
     _instances = {}
 
-    def __new__(cls, platform: str = "a2a3"):
-        if platform not in cls._instances:
+    def __new__(cls, platform: str = "a2a3", verbose: int = 1):
+        key = (platform, verbose)
+        if key not in cls._instances:
             instance = super(BinaryCompiler, cls).__new__(cls)
             instance._initialized = False
-            cls._instances[platform] = instance
-        return cls._instances[platform]
+            cls._instances[key] = instance
+        return cls._instances[key]
 
-    def __init__(self, platform: str = "a2a3"):
+    def __init__(self, platform: str = "a2a3", verbose: int = 1):
         if self._initialized:
             return
         self.platform = platform
+        self.verbose = verbose
         self.project_root = Path(__file__).parent.parent
         self.platform_dir = self.project_root / "src" / "platform" / platform
 
@@ -204,11 +206,12 @@ class BinaryCompiler:
             # Run CMake configuration
             cmake_cmd = ["cmake", cmake_source_dir] + cmake_args.split()
 
-            print(f"\n{'='*80}")
-            print(f"[{platform}] CMake Command:")
-            print(f"  Working directory: {build_dir}")
-            print(f"  Command: {' '.join(cmake_cmd)}")
-            print(f"{'='*80}\n")
+            if self.verbose >= 2:
+                print(f"\n{'='*80}")
+                print(f"[{platform}] CMake Command:")
+                print(f"  Working directory: {build_dir}")
+                print(f"  Command: {' '.join(cmake_cmd)}")
+                print(f"{'='*80}\n")
 
             try:
                 result = subprocess.run(
@@ -219,12 +222,13 @@ class BinaryCompiler:
                     text=True
                 )
 
-                if result.stdout:
-                    print(f"[{platform}] CMake stdout:")
-                    print(result.stdout)
-                if result.stderr:
-                    print(f"[{platform}] CMake stderr:")
-                    print(result.stderr)
+                if self.verbose >= 2:
+                    if result.stdout:
+                        print(f"[{platform}] CMake stdout:")
+                        print(result.stdout)
+                    if result.stderr:
+                        print(f"[{platform}] CMake stderr:")
+                        print(result.stderr)
 
                 if result.returncode != 0:
                     raise RuntimeError(
@@ -236,11 +240,12 @@ class BinaryCompiler:
             # Run Make to build
             make_cmd = ["make", "VERBOSE=1"]
 
-            print(f"\n{'='*80}")
-            print(f"[{platform}] Make Command:")
-            print(f"  Working directory: {build_dir}")
-            print(f"  Command: {' '.join(make_cmd)}")
-            print(f"{'='*80}\n")
+            if self.verbose >= 2:
+                print(f"\n{'='*80}")
+                print(f"[{platform}] Make Command:")
+                print(f"  Working directory: {build_dir}")
+                print(f"  Command: {' '.join(make_cmd)}")
+                print(f"{'='*80}\n")
 
             try:
                 result = subprocess.run(
@@ -251,12 +256,13 @@ class BinaryCompiler:
                     text=True
                 )
 
-                if result.stdout:
-                    print(f"[{platform}] Make stdout:")
-                    print(result.stdout)
-                if result.stderr:
-                    print(f"[{platform}] Make stderr:")
-                    print(result.stderr)
+                if self.verbose >= 2:
+                    if result.stdout:
+                        print(f"[{platform}] Make stdout:")
+                        print(result.stdout)
+                    if result.stderr:
+                        print(f"[{platform}] Make stderr:")
+                        print(result.stderr)
 
                 if result.returncode != 0:
                     raise RuntimeError(

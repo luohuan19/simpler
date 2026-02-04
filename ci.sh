@@ -13,33 +13,12 @@ fi
 if [ "$OS" = "Darwin" ]; then
     # Mac: only run simulation
     echo "Mac detected, running simulation only..."
-    python examples/scripts/run_example.py \
-        -k examples/host_build_graph_example/kernels \
-        -g examples/host_build_graph_example/golden.py \
-        -p a2a3sim
-    python examples/scripts/run_example.py \
-        -k examples/matmul_example/kernels \
-        -g examples/matmul_example/golden.py \
-        -p a2a3sim
+    python examples/scripts/run_all_examples.py --runtime host_build_graph -p a2a3sim -v 0
 else
     # Linux: run all platforms
     echo "Linux detected, running all platforms..."
-    python examples/scripts/run_example.py \
-        -k examples/host_build_graph_example/kernels \
-        -g examples/host_build_graph_example/golden.py \
-        -p a2a3
-    python examples/scripts/run_example.py \
-        -k examples/host_build_graph_example/kernels \
-        -g examples/host_build_graph_example/golden.py \
-        -p a2a3sim
-    python examples/scripts/run_example.py \
-        -k examples/matmul_example/kernels \
-        -g examples/matmul_example/golden.py \
-        -p a2a3
-    python examples/scripts/run_example.py \
-        -k examples/matmul_example/kernels \
-        -g examples/matmul_example/golden.py \
-        -p a2a3sim
+    python examples/scripts/run_all_examples.py --runtime host_build_graph -p a2a3 -d 5 -v 0
+    python examples/scripts/run_all_examples.py --runtime host_build_graph -p a2a3sim -v 0
 fi
 
 echo "All tests passed!"

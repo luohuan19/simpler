@@ -283,11 +283,13 @@ class CodeRunner:
         runtime_name: str = "host_build_graph",
         device_id: Optional[int] = None,
         platform: str = "a2a3",
+        verbose: int = 1,
     ):
         self.kernels_dir = Path(kernels_dir).resolve()
         self.golden_path = Path(golden_path).resolve()
         self.runtime_name = runtime_name
         self.platform = platform
+        self.verbose = verbose
         self.project_root = _get_project_root()
 
         # Resolve device ID
@@ -452,8 +454,7 @@ class CodeRunner:
             self.skip_if_no_env()
 
         # Step 1: Build runtime
-        print(f"\n=== Building Runtime: {self.runtime_name} (platform: {self.platform}) ===")
-        builder = RuntimeBuilder(runtime_root=self.project_root, platform=self.platform)
+        builder = RuntimeBuilder(runtime_root=self.project_root, platform=self.platform, verbose=self.verbose)
         pto_compiler = builder.get_pto_compiler()
         try:
             host_binary, aicpu_binary, aicore_binary = builder.build(self.runtime_name)
@@ -464,15 +465,10 @@ class CodeRunner:
             ) from e
 
         # Step 2: Load runtime and set device
-        print(f"\n=== Loading Runtime ({len(host_binary)} bytes) ===")
         Runtime = bind_host_binary(host_binary)
-
-        print(f"\n=== Setting Device {self.device_id} ===")
         set_device(self.device_id)
 
         # Step 3: Compile orchestration
-        print("\n=== Compiling Orchestration ===")
-
         # Build include directories for orchestration
         orch_include_dirs = [
             str(self.project_root / "src" / "runtime" / self.runtime_name / "runtime"),
@@ -482,16 +478,12 @@ class CodeRunner:
             self.orchestration["source"],
             extra_include_dirs=orch_include_dirs,
         )
-        print(f"Compiled orchestration: {len(orch_so_binary)} bytes")
 
         # Step 4: Compile and register kernels
-        print("\n=== Compiling and Registering Kernels ===")
-
         # Get PTO_ISA_ROOT (use default for sim platform)
         pto_isa_root = os.environ.get("PTO_ISA_ROOT", "/tmp/unused")
 
         for kernel in self.kernels:
-            print(f"Compiling kernel: {kernel['source']} (func_id={kernel['func_id']})")
             incore_o = pto_compiler.compile_incore(
                 kernel["source"],
                 core_type=kernel["core_type"],
@@ -506,8 +498,6 @@ class CodeRunner:
 
             # All kernels use unified entry point "kernel_entry"
             register_kernel(kernel["func_id"], kernel_bin)
-
-        print("All kernels compiled and registered")
 
         # Step 5: Run each parameter set
         total_cases = len(self.params_list)

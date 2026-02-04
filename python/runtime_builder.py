@@ -15,15 +15,20 @@ class RuntimeBuilder:
     be compiled for any platform (e.g., a2a3, a2a3sim).
     """
 
-    def __init__(self, platform: str = "a2a3", runtime_root: Optional[Path] = None):
+    def __init__(self, platform: str = "a2a3", runtime_root: Optional[Path] = None, verbose: int = 1):
         """
         Initialize RuntimeBuilder with platform selection.
 
         Args:
             platform: Target platform ("a2a3" or "a2a3sim")
             runtime_root: Root directory of the project. Defaults to parent of python/.
+            verbose: Verbosity level for compilation output:
+                     0 = Silent (errors only)
+                     1 = Normal (success/failure summary, default)
+                     2 = Verbose (all commands and output)
         """
         self.platform = platform
+        self.verbose = verbose
 
         if runtime_root is None:
             runtime_root = Path(__file__).parent.parent
@@ -39,8 +44,8 @@ class RuntimeBuilder:
                     self._runtimes[entry.name] = config_path
 
         # Create platform-configured compilers
-        self._binary_compiler = BinaryCompiler(platform=platform)
-        self._pto_compiler = PTOCompiler(platform=platform)
+        self._binary_compiler = BinaryCompiler(platform=platform, verbose=verbose)
+        self._pto_compiler = PTOCompiler(platform=platform, verbose=verbose)
 
     def get_binary_compiler(self) -> BinaryCompiler:
         """Return the BinaryCompiler configured for this platform."""
@@ -85,25 +90,29 @@ class RuntimeBuilder:
         compiler = self._binary_compiler
 
         # Compile AICore kernel
-        print("\n[1/3] Compiling AICore kernel...")
+        if self.verbose >= 1:
+            print("\n[1/3] Compiling AICore kernel...")
         aicore_cfg = build_config["aicore"]
         aicore_include_dirs = [str((config_dir / p).resolve()) for p in aicore_cfg["include_dirs"]]
         aicore_source_dirs = [str((config_dir / p).resolve()) for p in aicore_cfg["source_dirs"]]
         aicore_binary = compiler.compile("aicore", aicore_include_dirs, aicore_source_dirs)
 
         # Compile AICPU kernel
-        print("\n[2/3] Compiling AICPU kernel...")
+        if self.verbose >= 1:
+            print("\n[2/3] Compiling AICPU kernel...")
         aicpu_cfg = build_config["aicpu"]
         aicpu_include_dirs = [str((config_dir / p).resolve()) for p in aicpu_cfg["include_dirs"]]
         aicpu_source_dirs = [str((config_dir / p).resolve()) for p in aicpu_cfg["source_dirs"]]
         aicpu_binary = compiler.compile("aicpu", aicpu_include_dirs, aicpu_source_dirs)
 
         # Compile Host runtime
-        print("\n[3/3] Compiling Host runtime...")
+        if self.verbose >= 1:
+            print("\n[3/3] Compiling Host runtime...")
         host_cfg = build_config["host"]
         host_include_dirs = [str((config_dir / p).resolve()) for p in host_cfg["include_dirs"]]
         host_source_dirs = [str((config_dir / p).resolve()) for p in host_cfg["source_dirs"]]
         host_binary = compiler.compile("host", host_include_dirs, host_source_dirs)
 
-        print("\nBuild complete!")
+        if self.verbose >= 1:
+            print("\nBuild complete!")
         return (host_binary, aicpu_binary, aicore_binary)

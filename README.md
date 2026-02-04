@@ -65,8 +65,8 @@ The test framework automatically handles PTO_ISA_ROOT setup:
 **Automatic Setup (Recommended):**
 Just run your example - pto-isa will be cloned automatically on first run:
 ```bash
-python examples/scripts/run_example.py -k examples/host_build_graph_example/kernels \
-                                       -g examples/host_build_graph_example/golden.py \
+python examples/scripts/run_example.py -k examples/host_build_graph/host_build_graph_example/kernels \
+                                       -g examples/host_build_graph/host_build_graph_example/golden.py \
                                        -p a2a3sim
 ```
 
@@ -239,26 +239,26 @@ pto-runtime/
 │
 ├── examples/                           # Working examples
 │   ├── scripts/                        # Test framework scripts
-│   │   ├── run_example.py                   # Main test runner
+│   │   ├── run_example.py              # Main test runner
+│   │   ├── run_all_examples.py         # Batch test runner
 │   │   ├── code_runner.py              # Test execution engine
 │   │   └── README.md                   # Test framework documentation
 │   │
-│   ├── host_build_graph_example/       # Host-built graph example (a2a3)
-│   │   ├── README.md                   # Example documentation
-│   │   ├── golden.py                   # Input generation and expected output
-│   │   └── kernels/
-│   │       ├── kernel_config.py        # Kernel configuration
-│   │       ├── aiv/                    # AIV kernels
-│   │       │   ├── kernel_add.cpp
-│   │       │   ├── kernel_add_scalar.cpp
-│   │       │   └── kernel_mul.cpp
-│   │       └── orchestration/
-│   │           └── example_orch.cpp    # Orchestration kernel
-│   │
-│   └── host_build_graph_sim_example/   # Simulation example (a2a3sim)
-│       ├── README.md                   # Example documentation
-│       ├── golden.py                   # Input generation and expected output
-│       └── kernels/                    # Simulation kernels (plain C++)
+│   └── host_build_graph/               # host_build_graph runtime examples
+│       ├── host_build_graph_example/   # Basic example
+│       │   ├── README.md               # Example documentation
+│       │   ├── golden.py               # Input generation and expected output
+│       │   └── kernels/
+│       │       ├── kernel_config.py    # Kernel configuration
+│       │       ├── aiv/                # AIV kernels
+│       │       │   ├── kernel_add.cpp
+│       │       │   ├── kernel_add_scalar.cpp
+│       │       │   └── kernel_mul.cpp
+│       │       └── orchestration/
+│       │           └── example_orch.cpp # Orchestration kernel
+│       │
+│       ├── matmul_example/             # Matrix multiplication example
+│       └── paged_attention/            # Paged attention example
 │
 └── tests/                              # Test suite
     └── test_runtime_builder.py         # Runtime builder tests
@@ -359,15 +359,21 @@ Use the test framework to run examples:
 ```bash
 # Hardware platform (requires Ascend device)
 python examples/scripts/run_example.py \
-  -k examples/host_build_graph_example/kernels \
-  -g examples/host_build_graph_example/golden.py \
+  -k examples/host_build_graph/host_build_graph_example/kernels \
+  -g examples/host_build_graph/host_build_graph_example/golden.py \
   -p a2a3
 
 # Simulation platform (no hardware required)
 python examples/scripts/run_example.py \
-  -k examples/host_build_graph_sim_example/kernels \
-  -g examples/host_build_graph_sim_example/golden.py \
+  -k examples/host_build_graph/host_build_graph_example/kernels \
+  -g examples/host_build_graph/host_build_graph_example/golden.py \
   -p a2a3sim
+
+# Run all examples for a specific runtime
+python examples/scripts/run_all_examples.py --runtime host_build_graph -p a2a3sim
+
+# Run all examples for all runtimes
+python examples/scripts/run_all_examples.py -p a2a3sim
 ```
 
 This example:
@@ -624,6 +630,5 @@ Kernel uses macros:
 - [src/platform/a2a3/aicore/](src/platform/a2a3/aicore/) - AICore kernel implementation
 - [src/platform/a2a3sim/](src/platform/a2a3sim/) - Thread-based simulation platform
 - [src/runtime/host_build_graph/](src/runtime/host_build_graph/) - Host-built graph runtime
-- [examples/host_build_graph_example/](examples/host_build_graph_example/) - Hardware example (a2a3)
-- [examples/host_build_graph_sim_example/](examples/host_build_graph_sim_example/) - Simulation example (a2a3sim)
+- [examples/host_build_graph/](examples/host_build_graph/) - host_build_graph runtime examples
 - [python/](python/) - Python bindings and compiler

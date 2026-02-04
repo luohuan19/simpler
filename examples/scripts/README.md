@@ -28,8 +28,8 @@ python examples/scripts/run_example.py \
 
 ```bash
 python examples/scripts/run_example.py \
-  -k examples/host_build_graph_example/kernels \
-  -g examples/host_build_graph_example/golden.py \
+  -k examples/host_build_graph/host_build_graph_example/kernels \
+  -g examples/host_build_graph/host_build_graph_example/golden.py \
   -p a2a3
 ```
 
@@ -37,9 +37,19 @@ python examples/scripts/run_example.py \
 
 ```bash
 python examples/scripts/run_example.py \
-  -k examples/host_build_graph_sim_example/kernels \
-  -g examples/host_build_graph_sim_example/golden.py \
+  -k examples/host_build_graph/host_build_graph_example/kernels \
+  -g examples/host_build_graph/host_build_graph_example/golden.py \
   -p a2a3sim
+```
+
+#### Running All Examples for a Runtime
+
+```bash
+# Run all examples for host_build_graph runtime
+python examples/scripts/run_all_examples.py --runtime host_build_graph -p a2a3sim
+
+# Run all examples for all runtimes
+python examples/scripts/run_all_examples.py -p a2a3sim
 ```
 
 ## Command Line Arguments
@@ -53,12 +63,127 @@ python examples/scripts/run_example.py \
 | `--platform` | `-p` | Platform name: `a2a3` or `a2a3sim` | `a2a3` |
 | `--device` | `-d` | Device ID | From env var or 0 |
 | `--runtime` | `-r` | Runtime implementation name | `host_build_graph` |
-| `--verbose` | `-v` | Enable verbose output | False |
+| `--verbose` | `-v` | Verbosity level: 0=silent, 1=normal, 2=verbose | `1` |
 
 ### Platform Description
 
 - **`a2a3`**: Hardware platform, requires Ascend device and CANN toolkit
 - **`a2a3sim`**: Simulation platform, uses thread simulation, only requires gcc/g++
+
+## Verbosity Control
+
+The test framework supports three levels of output verbosity to control the amount of compilation and execution information displayed.
+
+### Verbosity Levels
+
+- **0 = Silent**: Only shows errors and final results. Hides all compilation details.
+- **1 = Normal** (Default): Shows compilation steps and success messages.
+- **2 = Verbose**: Shows all compilation commands, CMake output, compiler warnings, and detailed execution information.
+
+### Usage Examples
+
+#### Running Single Example
+
+```bash
+# Silent mode - minimal output
+python examples/scripts/run_example.py -k ./kernels -g ./golden.py -v 0
+
+# Normal mode - default, shows compilation progress
+python examples/scripts/run_example.py -k ./kernels -g ./golden.py -v 1
+
+# Verbose mode - shows all compilation details
+python examples/scripts/run_example.py -k ./kernels -g ./golden.py -v 2
+```
+
+#### Running All Examples
+
+```bash
+# Silent mode
+python examples/scripts/run_all_examples.py --runtime host_build_graph -p a2a3 -v 0
+
+# Normal mode (default)
+python examples/scripts/run_all_examples.py --runtime host_build_graph -p a2a3 -v 1
+
+# Verbose mode
+python examples/scripts/run_all_examples.py --runtime host_build_graph -p a2a3 -v 2
+```
+
+### Output Comparison
+
+**Silent Mode (verbose=0)**:
+```
+Set PTO_ISA_ROOT to: ...
+Loaded .text section from <bytes>
+=== Case 1/1: {} ===
+...
+TEST PASSED
+```
+
+**Normal Mode (verbose=1)** - Default:
+```
+[1/3] Compiling AICore kernel...
+[2/3] Compiling AICPU kernel...
+[3/3] Compiling Host runtime...
+Build complete!
+[Orchestration] Compilation successful: 116032 bytes
+[Incore] Compilation successful: 47504 bytes
+...
+TEST PASSED
+```
+
+**Verbose Mode (verbose=2)**:
+```
+================================================================================
+[AICORE] CMake Command:
+  Working directory: /tmp/aicore_build_xxx
+  Command: cmake ...
+================================================================================
+[AICORE] CMake stdout:
+-- The C compiler identification is GNU 10.3.1
+...
+[Incore] Compiling (AIC): /path/to/kernel.cpp
+  Command: /usr/local/Ascend/cann-8.5.0/bin/ccec -c -O3 ...
+[Incore] stderr:
+warning: ...
+...
+TEST PASSED
+```
+
+### Recommended Usage
+
+| Scenario | Recommended Level | Reason |
+|----------|-------------------|--------|
+| CI/CD Pipeline | 0 or 1 | Reduce log output, faster builds |
+| Daily Development | 1 | Shows progress without being verbose |
+| Debugging Compilation | 2 | See full commands and warnings |
+| Production Deployment | 0 | Focus on results and errors only |
+
+### Python API
+
+When using the framework programmatically:
+
+```python
+from runtime_builder import RuntimeBuilder
+from pto_compiler import PTOCompiler
+from code_runner import CodeRunner
+
+# Specify verbosity when creating instances
+builder = RuntimeBuilder(platform="a2a3", verbose=0)  # Silent
+pto_compiler = PTOCompiler(platform="a2a3", verbose=2)  # Verbose
+
+runner = CodeRunner(
+    kernels_dir="./kernels",
+    golden_path="./golden.py",
+    platform="a2a3sim",
+    verbose=1  # Normal
+)
+```
+
+### Notes
+
+- Error messages are always displayed regardless of verbosity level
+- `verbose=2` may impact compilation speed due to extensive output
+- All tools default to `verbose=1` (normal mode)
 
 ## File Structure Requirements
 
@@ -263,8 +388,8 @@ python examples/scripts/run_example.py -k my_test/kernels -g my_test/golden.py -
 # Simulation platform
 python examples/scripts/run_example.py -k my_test/kernels -g my_test/golden.py -p a2a3sim
 
-# Verbose output
-python examples/scripts/run_example.py -k my_test/kernels -g my_test/golden.py -p a2a3sim -v
+# With verbose output (shows all compilation details)
+python examples/scripts/run_example.py -k my_test/kernels -g my_test/golden.py -p a2a3sim -v 2
 ```
 
 ## Test Output
@@ -307,17 +432,23 @@ TEST FAILED: Output 'f' does not match golden
 
 ## Reference Examples
 
-- **Hardware Example**: [examples/host_build_graph_example/](../host_build_graph_example/)
-- **Simulation Example**: [examples/host_build_graph_sim_example/](../host_build_graph_sim_example/)
+- **host_build_graph Runtime Examples**: [examples/host_build_graph/](../host_build_graph/)
 
 ## FAQ
 
 ### Q: How to debug test failures?
 
-Use the `-v` flag to enable verbose output:
+Use verbose mode (`-v 2`) to see detailed compilation and execution information:
 
 ```bash
-python examples/scripts/run_example.py -k ... -g ... -p ... -v
+# Show all compilation commands and warnings
+python examples/scripts/run_example.py -k ... -g ... -p ... -v 2
+```
+
+For less verbose output but still showing progress, use normal mode (default):
+
+```bash
+python examples/scripts/run_example.py -k ... -g ... -p ... -v 1
 ```
 
 ### Q: Why "binary_data cannot be empty" error?
@@ -329,7 +460,7 @@ This usually happens when:
 Solutions:
 1. Verify correct `-p` parameter is used
 2. Check if kernel source files exist
-3. Use `-v` to view detailed compilation logs
+3. Use `-v 2` to view detailed compilation logs
 
 ### Q: How to add multiple test cases?
 
@@ -395,6 +526,7 @@ runner = CodeRunner(
     runtime_name="host_build_graph",
     platform="a2a3sim",
     device_id=0,
+    verbose=1,  # 0=silent, 1=normal, 2=verbose
 )
 
 runner.run()  # Execute test

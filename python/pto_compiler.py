@@ -17,7 +17,7 @@ class PTOCompiler:
     Both platforms use g++ for orchestration compilation.
     """
 
-    def __init__(self, platform: str = "a2a3", ascend_home_path: Optional[str] = None):
+    def __init__(self, platform: str = "a2a3", ascend_home_path: Optional[str] = None, verbose: int = 1):
         """
         Initialize PTOCompiler.
 
@@ -25,6 +25,10 @@ class PTOCompiler:
             platform: Target platform ("a2a3" or "a2a3sim")
             ascend_home_path: Path to Ascend toolkit. If None, reads from
                               ASCEND_HOME_PATH environment variable.
+            verbose: Verbosity level for compilation output:
+                     0 = Silent (errors only)
+                     1 = Normal (success/failure summary, default)
+                     2 = Verbose (all commands and output)
 
         Raises:
             ValueError: If platform is unknown
@@ -32,6 +36,7 @@ class PTOCompiler:
             FileNotFoundError: If required compiler not found
         """
         self.platform = platform
+        self.verbose = verbose
         self.project_root = Path(__file__).parent.parent
         self.platform_dir = self.project_root / "src" / "platform" / platform
 
@@ -136,10 +141,11 @@ class PTOCompiler:
 
         # Execute compilation
         core_type_name = "AIV" if core_type == "aiv" else "AIC"
-        print(f"\n{'='*80}")
-        print(f"[Incore] Compiling ({core_type_name}): {source_path}")
-        print(f"  Command: {' '.join(cmd)}")
-        print(f"{'='*80}\n")
+        if self.verbose >= 2:
+            print(f"\n{'='*80}")
+            print(f"[Incore] Compiling ({core_type_name}): {source_path}")
+            print(f"  Command: {' '.join(cmd)}")
+            print(f"{'='*80}\n")
 
         try:
             result = subprocess.run(
@@ -148,10 +154,11 @@ class PTOCompiler:
                 text=True
             )
 
-            if result.stdout:
-                print(f"[Incore] stdout:\n{result.stdout}")
-            if result.stderr:
-                print(f"[Incore] stderr:\n{result.stderr}")
+            if self.verbose >= 2:
+                if result.stdout:
+                    print(f"[Incore] stdout:\n{result.stdout}")
+                if result.stderr:
+                    print(f"[Incore] stderr:\n{result.stderr}")
 
             if result.returncode != 0:
                 raise RuntimeError(
@@ -172,7 +179,8 @@ class PTOCompiler:
         # Clean up temp file
         os.remove(output_path)
 
-        print(f"[Incore] Compilation successful: {len(binary_data)} bytes")
+        if self.verbose >= 1:
+            print(f"[Incore] Compilation successful: {len(binary_data)} bytes")
         return binary_data
 
     def _build_compile_command(
@@ -214,8 +222,8 @@ class PTOCompiler:
             "-mllvm", "-cce-aicore-addr-transform",
             "-mllvm", "-cce-aicore-dcci-insert-for-scalar=false",
             "-DMEMORY_BASE",
-            f"-I{pto_include}",
-            f"-I{pto_pto_include}",
+            f"-isystem{pto_include}",
+            f"-isystem{pto_pto_include}",
         ]
 
         # Add extra include dirs
@@ -289,10 +297,11 @@ class PTOCompiler:
         cmd.extend(["-o", output_path, source_path])
 
         # Print compilation command
-        print(f"\n{'='*80}")
-        print(f"[Orchestration] Compiling: {source_path}")
-        print(f"  Command: {' '.join(cmd)}")
-        print(f"{'='*80}\n")
+        if self.verbose >= 2:
+            print(f"\n{'='*80}")
+            print(f"[Orchestration] Compiling: {source_path}")
+            print(f"  Command: {' '.join(cmd)}")
+            print(f"{'='*80}\n")
 
         # Execute
         try:
@@ -302,10 +311,11 @@ class PTOCompiler:
                 text=True
             )
 
-            if result.stdout:
-                print(f"[Orchestration] stdout:\n{result.stdout}")
-            if result.stderr:
-                print(f"[Orchestration] stderr:\n{result.stderr}")
+            if self.verbose >= 2:
+                if result.stdout:
+                    print(f"[Orchestration] stdout:\n{result.stdout}")
+                if result.stderr:
+                    print(f"[Orchestration] stderr:\n{result.stderr}")
 
             if result.returncode != 0:
                 raise RuntimeError(
@@ -326,7 +336,8 @@ class PTOCompiler:
         # Clean up temp file
         os.remove(output_path)
 
-        print(f"[Orchestration] Compilation successful: {len(binary_data)} bytes")
+        if self.verbose >= 1:
+            print(f"[Orchestration] Compilation successful: {len(binary_data)} bytes")
         return binary_data
 
     def compile_incore_sim(
@@ -385,10 +396,11 @@ class PTOCompiler:
         cmd.extend(["-o", output_path, source_path])
 
         # Print compilation command
-        print(f"\n{'='*80}")
-        print(f"[SimKernel] Compiling: {source_path}")
-        print(f"  Command: {' '.join(cmd)}")
-        print(f"{'='*80}\n")
+        if self.verbose >= 2:
+            print(f"\n{'='*80}")
+            print(f"[SimKernel] Compiling: {source_path}")
+            print(f"  Command: {' '.join(cmd)}")
+            print(f"{'='*80}\n")
 
         # Execute
         try:
@@ -398,10 +410,11 @@ class PTOCompiler:
                 text=True
             )
 
-            if result.stdout:
-                print(f"[SimKernel] stdout:\n{result.stdout}")
-            if result.stderr:
-                print(f"[SimKernel] stderr:\n{result.stderr}")
+            if self.verbose >= 2:
+                if result.stdout:
+                    print(f"[SimKernel] stdout:\n{result.stdout}")
+                if result.stderr:
+                    print(f"[SimKernel] stderr:\n{result.stderr}")
 
             if result.returncode != 0:
                 raise RuntimeError(
@@ -422,5 +435,6 @@ class PTOCompiler:
         # Clean up temp files
         os.remove(output_path)
 
-        print(f"[SimKernel] Compilation successful: {len(binary_data)} bytes")
+        if self.verbose >= 1:
+            print(f"[SimKernel] Compilation successful: {len(binary_data)} bytes")
         return binary_data
