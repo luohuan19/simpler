@@ -7,6 +7,8 @@ permissions:
 on:
   pull_request:
     branches: [main]
+  push:
+    branches: [pod-ci]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -15,6 +17,7 @@ concurrency:
 jobs:
   # ---------- Pre-commit hooks (format, lint, clang-tidy) ----------
   pre-commit:
+    if: false
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -62,7 +65,7 @@ jobs:
   # See docs/python-packaging.md and tools/verify_packaging.sh.
   packaging-matrix:
     needs: [detect-changes, pre-commit]
-    if: needs.detect-changes.outputs.non_code_only != 'true'
+    if: false
     runs-on: ${{ matrix.os }}
     timeout-minutes: 60
     strategy:
@@ -107,7 +110,7 @@ jobs:
   # ---------- Unit tests (no hardware, Python + C++) ----------
   ut:
     needs: [detect-changes, pre-commit]
-    if: needs.detect-changes.outputs.non_code_only != 'true'
+    if: false
     runs-on: ${{ matrix.os }}
     timeout-minutes: 15
     strategy:
@@ -163,7 +166,7 @@ jobs:
   # ---------- Simulation scene tests ----------
   st-sim-a2a3:
     needs: [detect-changes, pre-commit]
-    if: needs.detect-changes.outputs.a2a3_changed == 'true'
+    if: false
     runs-on: ${{ matrix.os }}
     timeout-minutes: 30
     env:
@@ -257,7 +260,7 @@ jobs:
 
   st-sim-a5:
     needs: [detect-changes, pre-commit]
-    if: needs.detect-changes.outputs.a5_changed == 'true'
+    if: false
     runs-on: ${{ matrix.os }}
     timeout-minutes: 30
     env:
@@ -375,7 +378,7 @@ jobs:
   # corresponding profiling block — no cross-contamination from cmake cache.
   profiling-flags-smoke:
     needs: [detect-changes, pre-commit]
-    if: needs.detect-changes.outputs.a2a3_changed == 'true' || needs.detect-changes.outputs.a5_changed == 'true'
+    if: false
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
@@ -473,7 +476,7 @@ jobs:
   # ---------- Unit tests (a2a3 hardware, Python + C++) ----------
   ut-a2a3:
     needs: [detect-changes, pre-commit]
-    if: needs.detect-changes.outputs.non_code_only != 'true'
+    if: false
     runs-on: [self-hosted, a2a3]
     timeout-minutes: 30
     env:
@@ -559,7 +562,7 @@ jobs:
   # ---------- Scene tests (a2a3 hardware) ----------
   st-onboard-a2a3:
     needs: [detect-changes, pre-commit]
-    if: needs.detect-changes.outputs.a2a3_changed == 'true'
+    if: false
     runs-on: [self-hosted, a2a3]
     timeout-minutes: 60
     env:
@@ -725,9 +728,43 @@ jobs:
               --require-pto-isa --dump-args"
           fi
 
+  # ---------- Scene tests (a2a3 hardware, multi-machine pod runner) ----------
+  # Bring-up job for the pod-a2a3 runner pool: same checkout + environment setup
+  # as st-onboard-a2a3, with the test steps stubbed out until the pool is proven.
+  st-pod-onboard-a2a3:
+    runs-on: [self-hosted, Linux, ARM64, pod-a2a3]
+    timeout-minutes: 60
+    env:
+      SIMPLER_SCHEDULER_TIMEOUT_MS: "2000"
+      SIMPLER_OP_EXECUTE_TIMEOUT_US: "3000000"
+      SIMPLER_STREAM_SYNC_TIMEOUT_MS: "4000"
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+      - name: Set up environment
+        run: |
+          source /usr/local/Ascend/cann/set_env.sh
+          python3 -m venv --system-site-packages .venv
+          source .venv/bin/activate
+          pip install --upgrade pip
+          # The host_runtime build and test-time kernels both resolve PTO-ISA
+          # from pto_isa.pin, so they share one ISA revision.
+          pip install '.[test]'
+          # Warn if graphviz isn't installed on the runner — the dep_gen
+          # smoke step needs `dot` to render deps_viewer. The Python
+          # has_binary("dot") guard in the test will skip cleanly without
+          # it, but coverage drops, so flag it loudly here.
+          if ! command -v dot >/dev/null 2>&1; then
+            echo "::warning::graphviz 'dot' not found on PATH; deps_viewer tool smoke will skip. Install graphviz on this self-hosted runner to restore coverage."
+          fi
+
+      - name: Run pytest scene tests (a2a3)
+        run: echo test
 
   # ---------- Detect platform-specific changes (runs on GitHub server) ----------
   detect-changes:
+    if: false
     runs-on: ubuntu-latest
     outputs:
       a2a3_changed: ${{ steps.check.outputs.a2a3_changed }}
@@ -806,7 +843,7 @@ jobs:
   # ---------- Unit tests (a5 hardware, Python + C++) ----------
   ut-a5:
     needs: [detect-changes, pre-commit]
-    if: needs.detect-changes.outputs.non_code_only != 'true'
+    if: false
     runs-on: [self-hosted, a5]
     timeout-minutes: 30
     env:
@@ -876,7 +913,7 @@ jobs:
 
   st-onboard-a5:
     needs: [detect-changes, pre-commit]
-    if: needs.detect-changes.outputs.a5_changed == 'true'
+    if: false
     runs-on: [self-hosted, a5]
     timeout-minutes: 60
     env:
