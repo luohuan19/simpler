@@ -759,8 +759,19 @@ jobs:
             echo "::warning::graphviz 'dot' not found on PATH; deps_viewer tool smoke will skip. Install graphviz on this self-hosted runner to restore coverage."
           fi
 
-      - name: Run pytest scene tests (a2a3)
-        run: echo test
+      - name: paged_attention_unroll (a2a3)
+        run: |
+          source /usr/local/Ascend/cann/set_env.sh
+          source .venv/bin/activate
+          pytest tests/st/a2a3/tensormap_and_ringbuffer/paged_attention_unroll \
+            --platform a2a3 --device 12
+
+      - name: collectives allreduce (a2a3)
+        run: |
+          source /usr/local/Ascend/cann/set_env.sh
+          source .venv/bin/activate
+          pytest tests/st/worker/collectives/allreduce \
+            --platform a2a3 --device 12,13,14,15
 
   # ---------- Detect platform-specific changes (runs on GitHub server) ----------
   detect-changes:
