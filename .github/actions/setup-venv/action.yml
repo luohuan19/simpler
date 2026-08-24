@@ -81,7 +81,7 @@ runs:
         source .venv/bin/activate
         pip install --upgrade pip
         if [ "${{ inputs.install-torch }}" = "true" ]; then
-          pip install torch --index-url https://download.pytorch.org/whl/cpu
+          pip install 'torch>=2.3' --index-url https://download.pytorch.org/whl/cpu
         fi
         if [ -n "$BUILD_PACKAGES" ]; then
           pip install $BUILD_PACKAGES

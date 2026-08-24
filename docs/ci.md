@@ -57,6 +57,13 @@ PPA workload, decides whether the job can continue. An install from cached
 indexes that fails receives one bounded system-refresh retry. The acquire
 timeouts remain a per-connection safeguard, not a wall-clock guarantee.
 
+`setup-venv` installs torch from PyTorch's CPU wheel index before any package
+that requests `.[test]`. This applies to simulation, CPU, and NPU jobs alike:
+`--system-site-packages` exposes machine-provisioned CANN modules on NPU
+runners, but does not delegate torch selection to PyPI, whose Linux wheel can
+pull the CUDA dependency stack. The Network1 peer setup mirrors the same
+CPU-wheel-first ordering before it installs the staged checkout.
+
 ```text
 PullRequest
   ├── pre-commit             (ubuntu-latest)
@@ -320,6 +327,14 @@ Three hardware tiers, applied to all test categories. See [testing.md](testing.m
 On a self-hosted runner, every step that touches an NPU — pytest and ctest
 alike — must hold its devices exclusively while it runs. There are two a2a3
 runner pools, branched at run time on the host arch (`uname -m`):
+
+The standard NPU workflows normalize the runner's device environment before
+testing. A configured `DEVICE_RANGE` is preserved and supplies `DEVICE_NUM`
+when the count is absent; a configured `DEVICE_NUM` supplies a zero-based
+range when the range is absent. If neither is configured, CI uses four devices
+(`DEVICE_RANGE=0-3`, `DEVICE_NUM=4`), which is the minimum pool that covers the
+widest per-PR cases. Runners with a different allocation must set either
+variable in the runner service environment.
 
 - **ARM64 a2a3 runners** share the host with interactive users, so the step
   runs through `task-submit --device <list> --run "..."`, whose per-device
