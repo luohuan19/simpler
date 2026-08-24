@@ -1,0 +1,42 @@
+name: Set up NPU devices
+description: Normalize the device range and count used by self-hosted NPU jobs.
+
+runs:
+  using: composite
+  steps:
+    - name: Resolve NPU device environment
+      shell: bash
+      run: |
+        set -euo pipefail
+
+        device_range=${DEVICE_RANGE:-}
+        device_num=${DEVICE_NUM:-}
+
+        if [ -z "$device_range" ]; then
+          device_num=${device_num:-4}
+          if ! [[ "$device_num" =~ ^[1-9][0-9]*$ ]]; then
+            echo "::error::DEVICE_NUM must be a positive integer, got '$device_num'"
+            exit 2
+          fi
+          device_range="0-$((device_num - 1))"
+        elif [[ "$device_range" =~ ^([0-9]+)(-([0-9]+))?$ ]]; then
+          start=${BASH_REMATCH[1]}
+          end=${BASH_REMATCH[3]:-$start}
+          if (( end < start )); then
+            echo "::error::DEVICE_RANGE end must not be smaller than its start: '$device_range'"
+            exit 2
+          fi
+          device_range="$start-$end"
+          device_num=${device_num:-$((end - start + 1))}
+        else
+          echo "::error::DEVICE_RANGE must be one ID or an inclusive range such as 0-3, got '$device_range'"
+          exit 2
+        fi
+
+        if ! [[ "$device_num" =~ ^[1-9][0-9]*$ ]]; then
+          echo "::error::DEVICE_NUM must be a positive integer, got '$device_num'"
+          exit 2
+        fi
+
+        printf 'DEVICE_RANGE=%s\nDEVICE_NUM=%s\n' "$device_range" "$device_num" >> "$GITHUB_ENV"
+        echo "Using DEVICE_RANGE=$device_range and DEVICE_NUM=$device_num"

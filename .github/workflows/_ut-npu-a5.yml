@@ -37,12 +37,14 @@ jobs:
           ref: ${{ inputs.ref || github.ref }}
           persist-credentials: false
 
+      - name: Select NPU devices
+        uses: ./.github/actions/setup-npu-devices
+
       - name: Set up environment
         uses: ./.github/actions/setup-venv
         with:
           build-packages: "scikit-build-core nanobind<3 cmake>=3.15"
           packages: "--no-build-isolation --config-settings=build.targets=build_package_a5 .[test]"
-          install-torch: "false"
           system-site-packages: "true"
           source-cann: "false"
 
